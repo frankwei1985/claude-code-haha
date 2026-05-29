@@ -1,0 +1,115 @@
+import { describe, expect, it, vi } from 'vitest'
+import { buildOpenWithItems, type OpenWithContext, type OpenWithDeps } from './openWithItems'
+import type { OpenTarget } from '../stores/openTargetStore'
+
+function makeT() {
+  return (key: string, vars?: Record<string, string>) =>
+    vars?.target != null ? `${key}:${vars.target}` : key
+}
+
+function makeDeps(overrides?: Partial<OpenWithDeps>): OpenWithDeps {
+  return {
+    openInAppBrowser: vi.fn(),
+    openSystem: vi.fn(),
+    openWorkspacePreview: vi.fn(),
+    openTarget: vi.fn(),
+    t: makeT(),
+    ...overrides,
+  }
+}
+
+const ideTarget: OpenTarget = { id: 'code', kind: 'ide', label: 'VS Code', icon: 'vscode', platform: 'darwin' }
+const fmTarget: OpenTarget = { id: 'finder', kind: 'file_manager', label: 'Finder', icon: 'finder', platform: 'darwin' }
+
+describe('buildOpenWithItems – url context', () => {
+  it('returns exactly [in-app, system] for a url context', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = { kind: 'url', url: 'https://example.com' }
+    const items = buildOpenWithItems(ctx, [], deps)
+    expect(items.map((i) => i.id)).toEqual(['in-app', 'system'])
+  })
+
+  it('in-app calls openInAppBrowser with url', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = { kind: 'url', url: 'https://example.com' }
+    const items = buildOpenWithItems(ctx, [], deps)
+    items[0]!.onSelect()
+    expect(deps.openInAppBrowser).toHaveBeenCalledWith('https://example.com')
+    expect(deps.openSystem).not.toHaveBeenCalled()
+  })
+
+  it('system calls openSystem with url', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = { kind: 'url', url: 'https://example.com' }
+    const items = buildOpenWithItems(ctx, [], deps)
+    items[1]!.onSelect()
+    expect(deps.openSystem).toHaveBeenCalledWith('https://example.com')
+    expect(deps.openInAppBrowser).not.toHaveBeenCalled()
+  })
+})
+
+describe('buildOpenWithItems – file context with targets', () => {
+  it('returns [preview, ide:code, fm:finder, system] ids', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = { kind: 'file', absolutePath: '/w/a.md', relPath: 'a.md', previewable: true }
+    const items = buildOpenWithItems(ctx, [ideTarget, fmTarget], deps)
+    expect(items.map((i) => i.id)).toEqual(['preview', 'ide:code', 'fm:finder', 'system'])
+  })
+
+  it('preview calls openWorkspacePreview with relPath', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = { kind: 'file', absolutePath: '/w/a.md', relPath: 'a.md', previewable: true }
+    const items = buildOpenWithItems(ctx, [ideTarget, fmTarget], deps)
+    const preview = items.find((i) => i.id === 'preview')!
+    preview.onSelect()
+    expect(deps.openWorkspacePreview).toHaveBeenCalledWith('a.md')
+  })
+
+  it('ide:code calls openTarget with correct args', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = { kind: 'file', absolutePath: '/w/a.md', relPath: 'a.md', previewable: true }
+    const items = buildOpenWithItems(ctx, [ideTarget, fmTarget], deps)
+    const ideItem = items.find((i) => i.id === 'ide:code')!
+    ideItem.onSelect()
+    expect(deps.openTarget).toHaveBeenCalledWith('code', '/w/a.md')
+  })
+
+  it('system calls openSystem with absolutePath', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = { kind: 'file', absolutePath: '/w/a.md', relPath: 'a.md', previewable: true }
+    const items = buildOpenWithItems(ctx, [ideTarget, fmTarget], deps)
+    const sys = items.find((i) => i.id === 'system')!
+    sys.onSelect()
+    expect(deps.openSystem).toHaveBeenCalledWith('/w/a.md')
+  })
+
+  it('ide item carries the target object', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = { kind: 'file', absolutePath: '/w/a.md', relPath: 'a.md', previewable: true }
+    const items = buildOpenWithItems(ctx, [ideTarget, fmTarget], deps)
+    const ideItem = items.find((i) => i.id === 'ide:code')!
+    expect(ideItem.target).toBe(ideTarget)
+  })
+})
+
+describe('buildOpenWithItems – file context with inAppBrowserUrl (no previewable)', () => {
+  it('returns [in-app, system] ids for no targets + inAppBrowserUrl', () => {
+    const deps = makeDeps()
+    const ctx: OpenWithContext = {
+      kind: 'file',
+      absolutePath: '/w/page.html',
+      inAppBrowserUrl: 'http://127.0.0.1:4321/preview-fs/s1/page.html',
+    }
+    const items = buildOpenWithItems(ctx, [], deps)
+    expect(items.map((i) => i.id)).toEqual(['in-app', 'system'])
+  })
+
+  it('in-app calls openInAppBrowser with inAppBrowserUrl', () => {
+    const deps = makeDeps()
+    const inAppBrowserUrl = 'http://127.0.0.1:4321/preview-fs/s1/page.html'
+    const ctx: OpenWithContext = { kind: 'file', absolutePath: '/w/page.html', inAppBrowserUrl }
+    const items = buildOpenWithItems(ctx, [], deps)
+    items.find((i) => i.id === 'in-app')!.onSelect()
+    expect(deps.openInAppBrowser).toHaveBeenCalledWith(inAppBrowserUrl)
+  })
+})

@@ -91,6 +91,14 @@ export const en = {
   'openProject.openIn': 'Open in {target}',
   'openProject.openFailed': 'Could not open project',
 
+  // ─── Open With ─────────────────────────────────────
+  'openWith.inAppBrowser': 'In-app browser',
+  'openWith.systemBrowser': 'System browser',
+  'openWith.systemDefault': 'Open with system default',
+  'openWith.workspacePreview': 'Workspace preview',
+  'openWith.openInTarget': 'Open in {target}',
+  'openWith.revealInTarget': 'Reveal in {target}',
+
   // ─── Workspace Panel ───────────────────────────────
   'workspace.changedFiles': 'Changed files',
   'workspace.allFiles': 'All files',

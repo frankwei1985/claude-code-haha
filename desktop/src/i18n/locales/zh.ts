@@ -93,6 +93,14 @@ export const zh: Record<TranslationKey, string> = {
   'openProject.openIn': '用 {target} 打开',
   'openProject.openFailed': '无法打开项目',
 
+  // ─── Open With ─────────────────────────────────────
+  'openWith.inAppBrowser': '应用内浏览器',
+  'openWith.systemBrowser': '系统浏览器',
+  'openWith.systemDefault': '系统默认打开',
+  'openWith.workspacePreview': '工作台预览',
+  'openWith.openInTarget': '用 {target} 打开',
+  'openWith.revealInTarget': '在 {target} 中显示',
+
   // ─── Workspace Panel ───────────────────────────────
   'workspace.changedFiles': '已更改文件',
   'workspace.allFiles': '所有文件',
